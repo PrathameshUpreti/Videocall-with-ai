@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Call App Connection Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .test-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px;
+            background: #0070f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #results {
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: #f7f7f7;
+            padding: 10px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Video Call App Connection Test</h1>
+    
+    <div class="test-card">
+        <h3>Device Information</h3>
+        <div id="device-info"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>Socket.io Connection (port 3001)</h3>
+        <div id="socket-status">Not tested</div>
+        <button id="test-socket">Test Socket Connection</button>
+    </div>
+
+    <div class="test-card">
+        <h3>API Connection (port 5000)</h3>
+        <div id="api-status">Not tested</div>
+        <button id="test-api">Test API Connection</button>
+    </div>
+
+    <div class="test-card">
+        <h3>WebRTC Capability</h3>
+        <div id="webrtc-status">Not tested</div>
+        <button id="test-webrtc">Test WebRTC</button>
+    </div>
+
+    <h3>Results Log</h3>
+    <div id="results"></div>
+
+    <script>
+        // Log to both console and results div
+        function log(message) {
+            console.log(message);
+            const results = document.getElementById('results');
+            results.textContent += message + '\n';
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // Display device info
+        function showDeviceInfo() {
+            const info = document.getElementById('device-info');
+            const details = [
+                `User Agent: ${navigator.userAgent}`,
+                `Screen: ${window.innerWidth}x${window.innerHeight}`,
+                `Current URL: ${window.location.href}`,
+                `Hostname: ${window.location.hostname}`
+            ];
+            info.innerHTML = details.join('<br>');
+            log('Device information collected');
+        }
+
+        // Test socket.io connection
+        document.getElementById('test-socket').addEventListener('click', function() {
+            const status = document.getElementById('socket-status');
+            status.textContent = 'Testing...';
+            status.className = '';
+
+            try {
+                const hostname = window.location.hostname;
+                const socketUrl = `http://${hostname}:3001`;
+                log(`Connecting to socket at: ${socketUrl}`);
+
+                const socket = io(socketUrl, {
+                    transports: ['websocket', 'polling'],
+                    reconnectionAttempts: 3,
+                    timeout: 5000
+                });
+
+                socket.on('connect', function() {
+                    log(`Socket connected successfully with ID: ${socket.id}`);
+                    status.textContent = 'Connected! Socket ID: ' + socket.id;
+                    status.className = 'success';
+
+                    // Disconnect after 3 seconds
+                    setTimeout(function() {
+                        socket.disconnect();
+                        log('Socket disconnected intentionally after test');
+                    }, 3000);
+                });
+
+                socket.on('connect_error', function(error) {
+                    log(`Socket connection error: ${error.message}`);
+                    status.textContent = 'Connection failed: ' + error.message;
+                    status.className = 'error';
+                });
+            } catch (error) {
+                log(`Error initializing socket: ${error.message}`);
+                status.textContent = 'Error: ' + error.message;
+                status.className = 'error';
+            }
+        });
+
+        // Test API connection
+        document.getElementById('test-api').addEventListener('click', function() {
+            const status = document.getElementById('api-status');
+            status.textContent = 'Testing...';
+            status.className = '';
+
+            try {
+                const hostname = window.location.hostname;
+                const apiUrl = `http://${hostname}:5000/api/summary`;
+                log(`Testing API connection to: ${apiUrl}`);
+
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ transcript: 'This is a test.' })
+                })
+                .then(response => {
+                    log(`API response status: ${response.status}`);
+                    if (response.ok) {
+                        status.textContent = 'API connected successfully!';
+                        status.className = 'success';
+                        return response.json();
+                    } else {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                })
+                .then(data => {
+                    log(`API data received: ${JSON.stringify(data)}`);
+                })
+                .catch(error => {
+                    log(`API fetch error: ${error.message}`);
+                    status.textContent = 'API connection failed: ' + error.message;
+                    status.className = 'error';
+                });
+            } catch (error) {
+                log(`Error testing API: ${error.message}`);
+                status.textContent = 'Error: ' + error.message;
+                status.className = 'error';
+            }
+        });
+
+        // Test WebRTC capability
+        document.getElementById('test-webrtc').addEventListener('click', function() {
+            const status = document.getElementById('webrtc-status');
+            status.textContent = 'Testing...';
+            status.className = '';
+
+            try {
+                // Check if RTCPeerConnection exists
+                if (typeof RTCPeerConnection !== 'undefined') {
+                    log('RTCPeerConnection is supported');
+                    
+                    // Try to access media devices
+                    navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                        .then(stream => {
+                            log('Access to camera and microphone granted');
+                            status.textContent = 'WebRTC supported and permissions granted!';
+                            status.className = 'success';
+                            
+                            // Release the stream tracks
+                            stream.getTracks().forEach(track => track.stop());
+                        })
+                        .catch(error => {
+                            log(`Media access error: ${error.message}`);
+                            status.textContent = 'WebRTC supported but media access failed: ' + error.message;
+                            status.className = 'error';
+                        });
+                } else {
+                    log('RTCPeerConnection is NOT supported');
+                    status.textContent = 'WebRTC is not supported in this browser';
+                    status.className = 'error';
+                }
+            } catch (error) {
+                log(`Error testing WebRTC: ${error.message}`);
+                status.textContent = 'Error: ' + error.message;
+                status.className = 'error';
+            }
+        });
+
+        // Initialize
+        showDeviceInfo();
+        log('Test page loaded successfully');
+    </script>
+</body>
+</html> 
