@@ -10,8 +10,8 @@ export default function MCPDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <MCPIntegration />
-        </div>
-        
+      </div>
+
         <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
           <h2 className="text-2xl font-bold text-white mb-4">Quick Actions</h2>
           
@@ -44,10 +44,10 @@ export default function MCPDashboard() {
               </svg>
               Terminate All Sessions
             </button>
-          </div>
+            </div>
         </div>
-      </div>
-      
+        </div>
+        
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-3 bg-gray-800 rounded-lg p-6 shadow-lg">
           <h2 className="text-2xl font-bold text-white mb-4">Server Logs</h2>

@@ -75,7 +75,7 @@ const GitLabIntegration = () => {
         console.error('Error loading GitLab data:', err);
         setError('Failed to load GitLab data. Please try again.');
         setIsConnected(false);
-      } finally {
+    } finally {
         setIsLoading(false);
       }
     };
@@ -180,7 +180,7 @@ const GitLabIntegration = () => {
         {error && (
           <div className="bg-red-900/50 border border-red-700 p-3 rounded-lg text-red-200 mb-4 w-full">
             {error}
-          </div>
+        </div>
         )}
         
         <Button 
@@ -191,7 +191,7 @@ const GitLabIntegration = () => {
         >
           Connect GitLab Account
         </Button>
-      </div>
+        </div>
     );
   }
 
@@ -221,10 +221,10 @@ const GitLabIntegration = () => {
       <Card className="bg-slate-800/70 border-slate-700/50 text-white">
         <Flex justifyContent="between" alignItems="center" className="mb-4">
           <Title className="text-white">Repositories</Title>
-          <Button 
+          <Button
             onClick={handleRefresh} 
-            icon={ArrowPathIcon} 
-            variant="secondary" 
+            icon={ArrowPathIcon}
+            variant="secondary"
             color="blue" 
             size="xs"
             disabled={isLoading}
@@ -236,7 +236,7 @@ const GitLabIntegration = () => {
         {isLoading ? (
           <div className="flex justify-center py-8">
             <ArrowPathIcon className="h-6 w-6 text-blue-400 animate-spin" />
-          </div>
+              </div>
         ) : repositories.length > 0 ? (
           <List>
             {repositories.map(repo => (
@@ -246,8 +246,8 @@ const GitLabIntegration = () => {
                   <div className="flex-1 min-w-0">
                     <Text className="text-blue-200 font-medium">{repo.name}</Text>
                     <Text className="text-xs text-blue-200/70 truncate">{repo.description}</Text>
-                  </div>
-                  <div className="flex items-center space-x-3">
+            </div>
+              <div className="flex items-center space-x-3">
                     <Text className="text-xs text-blue-200/70">{repo.lastActivity}</Text>
                     <div className="flex items-center space-x-1">
                       <span className="text-yellow-400 text-xs">★</span>
@@ -255,17 +255,17 @@ const GitLabIntegration = () => {
                     </div>
                   </div>
                 </Flex>
-              </ListItem>
-            ))}
-          </List>
+                  </ListItem>
+                ))}
+              </List>
         ) : (
           <div className="text-center py-8">
             <Text className="text-blue-200/70">No repositories found</Text>
           </div>
-        )}
-      </Card>
+            )}
+          </Card>
     </div>
   );
-};
+}; 
 
 export default GitLabIntegration; 

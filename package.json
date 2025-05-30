@@ -23,7 +23,7 @@
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "framer-motion": "^12.9.7",
+    "framer-motion": "^12.15.0",
     "jira-client": "^8.2.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.3",
@@ -38,17 +38,22 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss7-compat": "^2.2.17",
     "@types/jira-client": "^7.1.9",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/simple-peer": "^9.11.8",
+    "autoprefixer": "^10.4.14",
     "concurrently": "^9.1.2",
     "critters": "^0.0.25",
+    "css-loader": "^7.1.2",
     "eslint": "^8.56.0",
     "eslint-config-next": "15.2.3",
-    "tailwindcss": "^4",
+    "postcss": "^8.4.31",
+    "postcss-loader": "^8.1.1",
+    "style-loader": "^4.0.0",
+    "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
 }

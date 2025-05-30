@@ -270,7 +270,7 @@ const GmailIntegration = () => {
       )
     );
   };
-
+  
   if (isLoading && !isConnected) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-blue-200">
@@ -295,15 +295,15 @@ const GmailIntegration = () => {
           </div>
         )}
         
-        <Button 
+          <Button 
           onClick={handleConnect} 
           icon={EnvelopeIcon}
           color="blue"
-          size="lg"
-        >
+            size="lg" 
+          >
           Connect Gmail Account
-        </Button>
-      </div>
+          </Button>
+        </div>
     );
   }
 
@@ -326,14 +326,14 @@ const GmailIntegration = () => {
             >
               {isLoading ? 'Refreshing...' : 'Refresh'}
             </Button>
-            <Button 
+              <Button
               icon={PlusIcon} 
               variant="secondary" 
               color="blue" 
               size="xs"
             >
               Compose
-            </Button>
+              </Button>
           </Flex>
         </Flex>
         
@@ -379,7 +379,7 @@ const GmailIntegration = () => {
                         )}
                       </div>
                     </Flex>
-                  </div>
+                                </div>
                 </Flex>
               </ListItem>
             ))}
@@ -387,7 +387,7 @@ const GmailIntegration = () => {
         ) : (
           <div className="text-center py-8">
             <Text className="text-blue-200/70">No emails found</Text>
-          </div>
+                                  </div>
         )}
       </Card>
       
@@ -417,7 +417,7 @@ const GmailIntegration = () => {
             <Text className="text-blue-200 text-sm">Starred</Text>
             <Badge color="yellow" size="xs" className="mt-1">5</Badge>
           </Flex>
-        </Card>
+          </Card>
         
         <Card className="bg-slate-800/70 border-slate-700/50 text-white p-4">
           <Flex justifyContent="center" flexDirection="col" alignItems="center">

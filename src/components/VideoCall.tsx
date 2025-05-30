@@ -40,7 +40,7 @@ export const VideoCall = ({ socket, roomId, username, isCreator, onLeaveRoom }: 
           roomId,
           username
         });
-        
+
       } catch (error) {
         console.error('Error accessing media devices:', error);
       }
@@ -93,12 +93,12 @@ export const VideoCall = ({ socket, roomId, username, isCreator, onLeaveRoom }: 
         });
         
         setLocalStream(stream);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-        
-        setIsScreenSharing(false);
-      } catch (error) {
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+      }
+      
+      setIsScreenSharing(false);
+        } catch (error) {
         console.error('Error accessing media devices:', error);
       }
     } else {
@@ -143,31 +143,31 @@ export const VideoCall = ({ socket, roomId, username, isCreator, onLeaveRoom }: 
         <div>
           <h1 className="text-white text-xl font-semibold">Room: {roomId}</h1>
           <p className="text-gray-400 text-sm">Joined as: {username} {isCreator && "(Host)"}</p>
-        </div>
+              </div>
         <div>
-          <button 
+            <button
             onClick={onLeaveRoom}
             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors"
           >
             Leave Call
-          </button>
+            </button>
         </div>
       </div>
-      
+
       {/* Main content */}
       <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Local video */}
         <div className="relative bg-[#232428] rounded-lg overflow-hidden aspect-video">
-          <video 
-            ref={localVideoRef}
-            autoPlay 
-            muted 
-            playsInline
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        muted
+  playsInline
             className="h-full w-full object-cover"
           />
           <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm px-2 py-1 rounded">
             {username} (You)
-          </div>
+                            </div>
           {(isMuted || isVideoOff) && (
             <div className="absolute top-2 right-2 flex space-x-1">
               {isMuted && (
@@ -178,62 +178,62 @@ export const VideoCall = ({ socket, roomId, username, isCreator, onLeaveRoom }: 
               {isVideoOff && (
                 <div className="bg-red-500 text-white text-xs px-2 py-1 rounded">
                   Video Off
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        
+                            </div>
+                          )}
+                            </div>
+                          )}
+                  </div>
+                  
         {/* Placeholder for remote videos */}
         {peers.length === 0 && (
           <div className="bg-[#232428] rounded-lg flex items-center justify-center aspect-video">
             <p className="text-gray-400">Waiting for others to join...</p>
-          </div>
-        )}
-      </div>
-      
+                </div>
+              )}
+                  </div>
+                  
       {/* Controls */}
       <div className="bg-[#18191e] p-4 flex justify-center space-x-4">
-        <button
+                            <button
           onClick={toggleAudio}
           className={`p-3 rounded-full ${isMuted ? 'bg-red-600' : 'bg-gray-700'} text-white`}
-          title={isMuted ? 'Unmute' : 'Mute'}
-        >
-          {isMuted ? (
+                            title={isMuted ? 'Unmute' : 'Mute'}
+                          >
+                            {isMuted ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-          ) : (
+                              </svg>
+                            ) : (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-          )}
-        </button>
+                              </svg>
+                            )}
+                          </button>
         
-        <button
-          onClick={toggleVideo}
+                          <button 
+                            onClick={toggleVideo} 
           className={`p-3 rounded-full ${isVideoOff ? 'bg-red-600' : 'bg-gray-700'} text-white`}
-          title={isVideoOff ? 'Turn Video On' : 'Turn Video Off'}
-        >
-          {isVideoOff ? (
+                            title={isVideoOff ? 'Turn Video On' : 'Turn Video Off'}
+                          >
+                            {isVideoOff ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          ) : (
+                              </svg>
+                            ) : (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          )}
-        </button>
+                              </svg>
+                            )}
+                          </button>
         
-        <button
-          onClick={toggleScreenShare}
+                      <button 
+                        onClick={toggleScreenShare}
           className={`p-3 rounded-full ${isScreenSharing ? 'bg-green-600' : 'bg-gray-700'} text-white`}
           title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
-        >
+                      >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
+                        </svg>
         </button>
       </div>
     </div>

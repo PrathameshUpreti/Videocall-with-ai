@@ -5,7 +5,7 @@ const nextConfig = {
   // Disable server-side rendering for specific paths that rely heavily on browser APIs
   experimental: {
     // Apply middleware only to specific paths
-    optimizeCss: true,
+    optimizeCss: false,
     // Other experimental features
     serverActions: {
       allowedOrigins: ['localhost:3000', '*.vercel.app'],
