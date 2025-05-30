@@ -38,7 +38,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss7-compat": "^2.2.17",
     "@types/jira-client": "^7.1.9",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -47,12 +46,9 @@
     "autoprefixer": "^10.4.14",
     "concurrently": "^9.1.2",
     "critters": "^0.0.25",
-    "css-loader": "^7.1.2",
     "eslint": "^8.56.0",
     "eslint-config-next": "15.2.3",
     "postcss": "^8.4.31",
-    "postcss-loader": "^8.1.1",
-    "style-loader": "^4.0.0",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
