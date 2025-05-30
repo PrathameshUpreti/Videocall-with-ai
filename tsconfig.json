@@ -21,8 +21,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "strictNullChecks": false,
-    "strictLiteralTypes": false
+    "strictNullChecks": false
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

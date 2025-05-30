@@ -19,7 +19,7 @@ import {
   Button
 } from '@tremor/react';
 import GmailIntegration from './GmailIntegration';
-import { GitLabIntegration } from './GitLabIntegration';
+import GitLabIntegration from './GitLabIntegration';
 import { 
   EnvelopeIcon, 
   CodeBracketIcon, 

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, Tab, TabGroup, TabList, TabPanel, TabPanels } from '@tremor/react';
 import Image from 'next/image';
 import { useAuth, User } from '@/contexts/AuthContext';
-import { ResearchStatusResponse } from '@/types/research';
+import { ResearchStatusResponse, ResearchStatus } from '@/types/research';
 
 interface VideoCallOptionsProps {
   onJoinRoom: (roomId: string, username: string, isCreator: boolean) => void;
@@ -105,7 +105,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
     let result = '';
     const charactersLength = characters.length;
     
-    // Generate an 8-character random ID
+    // Generate a 6-character random ID
     for (let i = 0; i < 6; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
@@ -677,7 +677,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
                 )}
                 
                 {/* Error Display */}
-                {researchStatus && researchStatus.status === 'error' && (
+                {researchStatus?.status === ('error' as ResearchStatus) && (
                   <div className="mt-4 p-4 bg-red-900/50 border border-red-700 rounded-lg">
                     <p className="text-red-300">{researchStatus.error}</p>
                   </div>

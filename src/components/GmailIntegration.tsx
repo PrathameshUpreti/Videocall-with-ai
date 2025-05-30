@@ -26,7 +26,8 @@ import {
   SelectItem,
   DateRangePicker,
   BarChart,
-  DonutChart
+  DonutChart,
+  Flex
 } from '@tremor/react';
 import { toast } from 'react-toastify';
 import { 
@@ -56,7 +57,8 @@ import {
   XMarkIcon,
   MinusIcon,
   PaperClipIcon,
-  DocumentIcon
+  DocumentIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -85,807 +87,348 @@ interface EmailStats {
   };
 }
 
-export default function GmailIntegration() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [messages, setMessages] = useState<GmailMessage[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState(0);
+interface Email {
+  id: string;
+  subject: string;
+  sender: string;
+  preview: string;
+  date: string;
+  read: boolean;
+  starred: boolean;
+}
+
+const GmailIntegration = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [emails, setEmails] = useState<Email[]>([]);
+  const [error, setError] = useState<string | null>(null);
   
-  // Compose email state
-  const [sendToEmail, setSendToEmail] = useState<string>('');
-  const [emailSubject, setEmailSubject] = useState<string>('');
-  const [emailBody, setEmailBody] = useState<string>('');
-  const [sendingEmail, setSendingEmail] = useState<boolean>(false);
-  const [ccEmail, setCcEmail] = useState<string>('');
-  const [bccEmail, setBccEmail] = useState<string>('');
-  const [showCcBcc, setShowCcBcc] = useState<boolean>(false);
-  
-  // Search state
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [searchLoading, setSearchLoading] = useState<boolean>(false);
-  
-  // View message state
-  const [selectedMessage, setSelectedMessage] = useState<GmailMessage | null>(null);
-  const [viewMessageMode, setViewMessageMode] = useState<boolean>(false);
-  
-  // Email templates
-  const emailTemplates = [
-    { name: "Meeting Request", subject: "Request for Meeting", body: "Dear recipient,\n\nI hope this email finds you well. I would like to schedule a meeting to discuss [topic]. Would you be available on [date] at [time]?\n\nBest regards,\n[Your Name]" },
-    { name: "Thank You", subject: "Thank You", body: "Dear recipient,\n\nI wanted to express my sincere gratitude for [reason]. Your support/contribution has been invaluable.\n\nBest regards,\n[Your Name]" },
-    { name: "Project Update", subject: "Project Update: [Project Name]", body: "Hello team,\n\nI'm writing to provide an update on our project status:\n\n- Task 1: [status]\n- Task 2: [status]\n- Task 3: [status]\n\nNext steps:\n1. [Next step 1]\n2. [Next step 2]\n\nPlease let me know if you have any questions.\n\nRegards,\n[Your Name]" }
-  ];
-
-  const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
-  const [selectedDateRange, setSelectedDateRange] = useState<any>(null);
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState<boolean>(false);
-  const [scheduledEmails, setScheduledEmails] = useState<any[]>([]);
-  const [emailStats, setEmailStats] = useState<EmailStats>({
-    total: 0,
-    unread: 0,
-    starred: 0,
-    sent: 0,
-    category: {
-      primary: 0,
-      social: 0,
-      promotions: 0,
-      updates: 0
-    }
-  });
-
-  // Email categories for filtering
-  const categories = [
-    { name: 'Primary', value: 'primary', icon: InboxIcon },
-    { name: 'Social', value: 'social', icon: FolderIcon },
-    { name: 'Promotions', value: 'promotions', icon: TagIcon },
-    { name: 'Updates', value: 'updates', icon: ArchiveBoxIcon }
-  ];
-
-  // Advanced search options
-  const searchFilters = {
-    from: '',
-    to: '',
-    subject: '',
-    hasAttachment: false,
-    dateRange: null,
-    labels: []
-  };
-
-  // Calculate email statistics
-  const calculateStats = (messages: GmailMessage[]) => {
-    const stats: EmailStats = {
-      total: messages.length,
-      unread: messages.filter(m => !m.read).length,
-      starred: messages.filter(m => m.starred).length,
-      sent: 0, // You would need to track sent emails separately
-      category: {
-        primary: messages.filter(m => m.category === 'primary').length,
-        social: messages.filter(m => m.category === 'social').length,
-        promotions: messages.filter(m => m.category === 'promotions').length,
-        updates: messages.filter(m => m.category === 'updates').length
-      }
-    };
-    setEmailStats(stats);
-  };
-
-  // Schedule email for later
-  const scheduleEmail = (email: any, scheduledTime: Date) => {
-    setScheduledEmails([...scheduledEmails, { ...email, scheduledTime }]);
-    toast.success('Email scheduled successfully');
-  };
-
-  // Analytics data
-  const emailChartData = [
-    { category: 'Primary', value: emailStats.category.primary },
-    { category: 'Social', value: emailStats.category.social },
-    { category: 'Promotions', value: emailStats.category.promotions },
-    { category: 'Updates', value: emailStats.category.updates }
-  ];
-
-  // New state for compose email
-  const [isComposing, setIsComposing] = useState<boolean>(false);
-  const [replyTo, setReplyTo] = useState<GmailMessage | null>(null);
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [editorContent, setEditorContent] = useState<string>('');
-  const editorRef = useRef<HTMLDivElement>(null);
-
-  // Custom editor commands
-  const execCommand = (command: string, value: string | undefined = undefined) => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      const content = editorRef.current.innerHTML;
-      setEditorContent(content);
-    }
-  };
-
-  // Enhanced email sending function
-  const handleSendEmail = async () => {
-    try {
-      setSendingEmail(true);
-      
-      const formData = new FormData();
-      formData.append('to', sendToEmail);
-      formData.append('subject', emailSubject);
-      formData.append('body', editorContent);
-      
-      if (ccEmail) formData.append('cc', ccEmail);
-      if (bccEmail) formData.append('bcc', bccEmail);
-      
-      attachments.forEach(file => {
-        formData.append('attachments', file);
-      });
-
-      await axios.post('/api/gmail/send', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      toast.success('Email sent successfully!');
-      resetComposeForm();
-    } catch (error) {
-      toast.error('Failed to send email. Please try again.');
-      console.error('Send email error:', error);
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
-  const resetComposeForm = () => {
-    setSendToEmail('');
-    setEmailSubject('');
-    setEditorContent('');
-    if (editorRef.current) {
-      editorRef.current.innerHTML = '';
-    }
-    setCcEmail('');
-    setBccEmail('');
-    setAttachments([]);
-    setIsComposing(false);
-    setReplyTo(null);
-  };
-
-  const handleReply = (message: GmailMessage) => {
-    setIsComposing(true);
-    setReplyTo(message);
-    setSendToEmail(message.sender);
-    setEmailSubject(`Re: ${message.subject}`);
-    setEditorContent(`\n\n\nOn ${message.date}, ${message.sender} wrote:\n> ${message.snippet}`);
-  };
-
-  const handleForward = (message: GmailMessage) => {
-    setIsComposing(true);
-    setEmailSubject(`Fwd: ${message.subject}`);
-    setEditorContent(`\n\n\n---------- Forwarded message ----------\nFrom: ${message.sender}\nDate: ${message.date}\nSubject: ${message.subject}\n\n${message.snippet}`);
-  };
-
-  // Simplified Message List component
-  const MessageList = ({ messages }: { messages: GmailMessage[] }) => (
-    <div className="space-y-2">
-      {messages.map((message, index) => (
-        <motion.div
-          key={message.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.05 }}
-        >
-          <Card 
-            className={`transition-all duration-200 hover:shadow-md ${
-              !message.read ? 'border-l-4 border-l-blue-500' : ''
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleStar(message.id);
-                }}
-                className={`mt-1 p-1 rounded-full hover:bg-gray-100 ${
-                  message.starred ? 'text-amber-500' : 'text-gray-400'
-                }`}
-              >
-                <StarIcon className="w-5 h-5" />
-              </button>
-              
-              <div className="flex-grow min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <Text className="font-medium truncate">{message.sender}</Text>
-                  <Text className="text-sm text-gray-500">
-                    {new Date(message.date).toLocaleDateString()}
-                  </Text>
-                </div>
-                
-                <Text className="text-gray-900 truncate mb-1">
-                  {message.subject}
-                </Text>
-                
-                <Text className="text-sm text-gray-600 line-clamp-2">
-                  {message.snippet}
-                </Text>
-
-                <div className="flex items-center gap-2 mt-3">
-                  <Button
-                    size="xs"
-                    variant="light"
-                    icon={ArrowUturnLeftIcon}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleReply(message);
-                    }}
-                  >
-                    Reply
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    icon={ArrowUturnRightIcon}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleForward(message);
-                    }}
-                  >
-                    Forward
-                  </Button>
-                  <div className="flex-grow" />
-                  {message.category && (
-                    <Badge 
-                      color="gray" 
-                      size="xs"
-                      className="capitalize"
-                    >
-                      {message.category}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      ))}
-    </div>
-  );
-
-  // Compose Email Modal
-  const ComposeEmailModal = () => {
-    const formatButtons = [
-      { icon: 'B', command: 'bold', tooltip: 'Bold' },
-      { icon: 'I', command: 'italic', tooltip: 'Italic' },
-      { icon: 'U', command: 'underline', tooltip: 'Underline' },
-      { icon: '•', command: 'insertUnorderedList', tooltip: 'Bullet List' },
-      { icon: '1.', command: 'insertOrderedList', tooltip: 'Numbered List' },
-      { icon: 'H1', command: 'formatBlock', value: 'h1', tooltip: 'Heading 1' },
-      { icon: 'H2', command: 'formatBlock', value: 'h2', tooltip: 'Heading 2' },
-      { icon: '""', command: 'formatBlock', value: 'blockquote', tooltip: 'Quote' },
-    ];
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-white/5 backdrop-blur-sm p-4"
-      >
-        <motion.div 
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="w-full max-w-3xl bg-white rounded-t-lg sm:rounded-lg shadow-2xl flex flex-col relative"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <Text className="font-medium">
-              {replyTo ? 'Reply to Email' : 'New Message'}
-            </Text>
-            <div className="flex items-center gap-2">
-              <Button
-                size="xs"
-                variant="light"
-                icon={MinusIcon}
-                onClick={() => {/* Implement minimize */}}
-                className="text-gray-600"
-              />
-              <Button
-                size="xs"
-                variant="light"
-                icon={XMarkIcon}
-                onClick={resetComposeForm}
-                className="text-gray-600"
-              />
-            </div>
-          </div>
-
-          {/* Email Form */}
-          <div className="flex-grow overflow-y-auto">
-            {/* Recipients Section */}
-            <div className="border-b divide-y">
-              <div className="px-4 py-2 flex items-center">
-                <Text className="w-16 text-sm text-gray-600">To:</Text>
-                <TextInput
-                  value={sendToEmail}
-                  onChange={(e) => setSendToEmail(e.target.value)}
-                  placeholder="Recipients"
-                  className="border-none shadow-none focus:ring-0"
-                />
-              </div>
-
-              {showCcBcc && (
-                <>
-                  <div className="px-4 py-2 flex items-center">
-                    <Text className="w-16 text-sm text-gray-600">Cc:</Text>
-                    <TextInput
-                      value={ccEmail}
-                      onChange={(e) => setCcEmail(e.target.value)}
-                      placeholder="Carbon copy"
-                      className="border-none shadow-none focus:ring-0"
-                    />
-                  </div>
-                  <div className="px-4 py-2 flex items-center">
-                    <Text className="w-16 text-sm text-gray-600">Bcc:</Text>
-                    <TextInput
-                      value={bccEmail}
-                      onChange={(e) => setBccEmail(e.target.value)}
-                      placeholder="Blind carbon copy"
-                      className="border-none shadow-none focus:ring-0"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="px-4 py-2 flex items-center">
-                <Text className="w-16 text-sm text-gray-600">Subject:</Text>
-                <TextInput
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Subject"
-                  className="border-none shadow-none focus:ring-0"
-                />
-              </div>
-            </div>
-
-            {/* Formatting Toolbar */}
-            <div className="px-4 py-2 border-b bg-gray-50">
-              <div className="flex flex-wrap items-center gap-1">
-                {formatButtons.map((button) => (
-                  <button
-                    key={button.command + (button.value || '')}
-                    onClick={() => execCommand(button.command, button.value)}
-                    className="p-2 rounded hover:bg-gray-200 transition-colors"
-                    title={button.tooltip}
-                  >
-                    <span className="text-sm font-medium text-gray-700">
-                      {button.icon}
-                    </span>
-                  </button>
-                ))}
-                
-                <div className="h-5 w-px bg-gray-300 mx-2" />
-                
-                <Button
-                  size="xs"
-                  variant="light"
-                  icon={PaperClipIcon}
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                  className="text-gray-700"
-                >
-                  Attach
-                </Button>
-                <input
-                  id="file-upload"
-                  type="file"
-                  multiple
-                  onChange={(e) => setAttachments(Array.from(e.target.files || []))}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* Editor */}
-            <div
-              ref={editorRef}
-              className="p-4 min-h-[300px] focus:outline-none"
-              contentEditable
-              onInput={(e) => setEditorContent(e.currentTarget.innerHTML)}
-              dangerouslySetInnerHTML={replyTo ? {
-                __html: `\n\n\nOn ${replyTo.date}, ${replyTo.sender} wrote:\n> ${replyTo.snippet}`
-              } : undefined}
-            />
-
-            {/* Attachments */}
-            {attachments.length > 0 && (
-              <div className="px-4 py-3 border-t bg-gray-50">
-                <Text className="text-sm text-gray-600 mb-2">
-                  Attachments ({attachments.length})
-                </Text>
-                <div className="flex flex-wrap gap-2">
-                  {attachments.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border"
-                    >
-                      <DocumentIcon className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm truncate max-w-[200px]">
-                        {file.name}
-                      </span>
-                      <button
-                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <XMarkIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-4 py-3 border-t bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="primary"
-                icon={PaperAirplaneIcon}
-                loading={sendingEmail}
-                onClick={handleSendEmail}
-                disabled={!sendToEmail || !emailSubject || !editorContent.trim()}
-              >
-                Send
-              </Button>
-              
-              {!showCcBcc && (
-                <Button
-                  size="xs"
-                  variant="light"
-                  onClick={() => setShowCcBcc(true)}
-                  className="text-gray-600"
-                >
-                  Cc/Bcc
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Select
-                value=""
-                onValueChange={(value) => {
-                  const template = emailTemplates.find(t => t.name === value);
-                  if (template) {
-                    setEmailSubject(template.subject);
-                    if (editorRef.current) {
-                      editorRef.current.innerHTML = template.body;
-                      setEditorContent(template.body);
-                    }
-                  }
-                }}
-                className="w-40"
-              >
-                <SelectItem value="">
-                  Templates
-                </SelectItem>
-                {emailTemplates.map((template) => (
-                  <SelectItem key={template.name} value={template.name}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </Select>
-              
-              <Button
-                variant="light"
-                icon={TrashIcon}
-                onClick={resetComposeForm}
-                className="text-gray-600"
-              >
-                Discard
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    );
-  };
-
-  // Check Gmail authentication status
+  // Simulate loading emails
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    const loadEmails = async () => {
       try {
-        // Check for error parameter in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get('error');
-        if (error) {
-          toast.error(`Authentication failed: ${error}`);
-          setLoading(false);
-          return;
-        }
-
-        const response = await axios.get('/mcp/gmail/status');
-        setIsAuthenticated(response.data.authenticated);
-        if (response.data.authenticated && response.data.email) {
-          setUserEmail(response.data.email);
-          fetchMessages();
-          toast.success('Gmail connected successfully!');
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Failed to check Gmail authentication status:', error);
-        setLoading(false);
+        setIsLoading(true);
+        
+        // Simulate API call with a delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Mock data for demonstration
+        const mockEmails: Email[] = [
+          {
+            id: '1',
+            subject: 'Meeting Notes: Project Kickoff',
+            sender: 'project-manager@example.com',
+            preview: 'Here are the notes from our kickoff meeting today. Please review and provide feedback by...',
+            date: '10:30 AM',
+            read: false,
+            starred: true
+          },
+          {
+            id: '2',
+            subject: 'Updated Design Mockups',
+            sender: 'design-team@example.com',
+            preview: 'Please find attached the updated design mockups for the video call interface...',
+            date: 'Yesterday',
+            read: true,
+            starred: false
+          },
+          {
+            id: '3',
+            subject: 'API Documentation',
+            sender: 'dev-team@example.com',
+            preview: 'The updated API documentation is now available at the following link...',
+            date: 'Jul 28',
+            read: true,
+            starred: false
+          },
+          {
+            id: '4',
+            subject: 'Invitation: Weekly Team Sync',
+            sender: 'calendar-notifications@example.com',
+            preview: 'You have been invited to the following event: Weekly Team Sync...',
+            date: 'Jul 27',
+            read: true,
+            starred: false
+          }
+        ];
+        
+        setEmails(mockEmails);
+        setIsConnected(true);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading emails:', err);
+        setError('Failed to load emails. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
-
-    checkAuthStatus();
+    
+    loadEmails();
   }, []);
-
-  // Fetch Gmail messages
-  const fetchMessages = async () => {
+  
+  const handleConnect = async () => {
+    setIsLoading(true);
+    
     try {
-      setLoading(true);
-      const response = await axios.get('/mcp/gmail/messages');
+      // Simulate connection process
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Add some mock properties for better UI demo
-      const messagesWithStatus = (response.data.messages || []).map((msg: GmailMessage, index: number) => ({
-        ...msg,
-        read: index % 3 !== 0, // Mark every third message as unread for demo
-        starred: index % 5 === 0 // Star every fifth message for demo
-      }));
+      // Mock emails
+      const mockEmails: Email[] = [
+        {
+          id: '1',
+          subject: 'Meeting Notes: Project Kickoff',
+          sender: 'project-manager@example.com',
+          preview: 'Here are the notes from our kickoff meeting today. Please review and provide feedback by...',
+          date: '10:30 AM',
+          read: false,
+          starred: true
+        },
+        {
+          id: '2',
+          subject: 'Updated Design Mockups',
+          sender: 'design-team@example.com',
+          preview: 'Please find attached the updated design mockups for the video call interface...',
+          date: 'Yesterday',
+          read: true,
+          starred: false
+        },
+        {
+          id: '3',
+          subject: 'API Documentation',
+          sender: 'dev-team@example.com',
+          preview: 'The updated API documentation is now available at the following link...',
+          date: 'Jul 28',
+          read: true,
+          starred: false
+        },
+        {
+          id: '4',
+          subject: 'Invitation: Weekly Team Sync',
+          sender: 'calendar-notifications@example.com',
+          preview: 'You have been invited to the following event: Weekly Team Sync...',
+          date: 'Jul 27',
+          read: true,
+          starred: false
+        }
+      ];
       
-      setMessages(messagesWithStatus);
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to fetch Gmail messages:', error);
-      toast.error('Failed to fetch Gmail messages');
-      setLoading(false);
+      setEmails(mockEmails);
+      setIsConnected(true);
+    } catch (err) {
+      console.error('Error connecting to Gmail:', err);
+      setError('Failed to connect to Gmail. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  // Authenticate with Gmail
-  const handleAuthenticate = () => {
-    window.location.href = '/mcp/gmail/auth';
-  };
   
-  // Handle search
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      return;
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Simulate refresh
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Add a new email to the top
+      setEmails(prev => [
+        {
+          id: 'new-1',
+          subject: 'Urgent: Server Update Required',
+          sender: 'system-admin@example.com',
+          preview: 'We need to schedule an urgent server update to address recent security concerns...',
+          date: 'Just now',
+          read: false,
+          starred: false
+        },
+        ...prev
+      ]);
+    } catch (err) {
+      console.error('Error refreshing emails:', err);
+      setError('Failed to refresh emails. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setSearchLoading(true);
-    // Simulate search with delay
-    setTimeout(() => {
-      const filtered = messages.filter(msg => 
-        msg.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        msg.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.sender.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setMessages(filtered);
-      setSearchLoading(false);
-    }, 800);
   };
   
-  // Reset search and fetch all messages again
-  const resetSearch = () => {
-    setSearchQuery('');
-    fetchMessages();
-  };
-  
-  // Apply email template
-  const applyTemplate = (template: {subject: string, body: string}) => {
-    setEmailSubject(template.subject);
-    setEmailBody(template.body);
-  };
-  
-  // Toggle star status
-  const toggleStar = (messageId: string) => {
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId ? {...msg, starred: !msg.starred} : msg
-      )
-    );
-    toast.success('Message starred');
-  };
-  
-  // Mark as read/unread
-  const toggleRead = (messageId: string) => {
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId ? {...msg, read: !msg.read} : msg
-      )
-    );
-    toast.success('Message status updated');
-  };
-  
-  // View message details
-  const viewMessage = (message: GmailMessage) => {
-    setSelectedMessage(message);
-    setViewMessageMode(true);
-    
-    // Mark as read
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === message.id ? {...msg, read: true} : msg
+  const handleToggleStar = (id: string) => {
+    setEmails(prev => 
+      prev.map(email => 
+        email.id === id 
+          ? { ...email, starred: !email.starred } 
+          : email
       )
     );
   };
   
-  // Back to message list
-  const backToList = () => {
-    setViewMessageMode(false);
-    setSelectedMessage(null);
+  const handleMarkAsRead = (id: string) => {
+    setEmails(prev => 
+      prev.map(email => 
+        email.id === id 
+          ? { ...email, read: true } 
+          : email
+      )
+    );
   };
-  
-  // Get unread count
-  const unreadCount = useMemo(() => {
-    return messages.filter(msg => !msg.read).length;
-  }, [messages]);
 
-  // Render unread badge
-  const renderUnreadBadge = (count: number) => {
-    if (count === 0) return null;
-    return <Badge color="red" size="xs">{count}</Badge>;
-  };
+  if (isLoading && !isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 text-blue-200">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mb-4"></div>
+        <Text>Connecting to Gmail...</Text>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <EnvelopeIcon className="h-16 w-16 text-blue-400 mb-4" />
+        <Title className="text-xl text-white mb-2">Connect to Gmail</Title>
+        <Text className="text-blue-200 mb-6 text-center">
+          Link your Gmail account to access your emails directly from your calls
+        </Text>
+        
+        {error && (
+          <div className="bg-red-900/50 border border-red-700 p-3 rounded-lg text-red-200 mb-4 w-full">
+            {error}
+          </div>
+        )}
+        
+        <Button 
+          onClick={handleConnect} 
+          icon={EnvelopeIcon}
+          color="blue"
+          size="lg"
+        >
+          Connect Gmail Account
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      {!isAuthenticated ? (
-        <Card className="py-12">
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="bg-blue-50 p-4 rounded-full mb-6">
-              <EnvelopeIcon className="w-12 h-12 text-blue-500" />
-          </div>
-            <Title className="mb-2">Connect Gmail</Title>
-            <Text className="mb-6 max-w-md text-gray-600">
-              Connect your Gmail account to manage your emails directly within the application.
-            </Text>
-          <Button 
-            size="lg" 
-              variant="primary"
-              onClick={handleAuthenticate}
-            icon={EnvelopeIcon}
-          >
-              Connect Account
-          </Button>
-        </div>
-        </Card>
-      ) : (
-        <>
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <EnvelopeIcon className="w-6 h-6 text-blue-500" />
-        <div>
-                <Title className="text-xl">Gmail</Title>
-                <Text className="text-sm text-gray-600">{userEmail}</Text>
-              </div>
-            </div>
-              <Button
-              variant="primary"
-              icon={PaperAirplaneIcon}
-              onClick={() => setIsComposing(true)}
+    <div className="space-y-6">
+      <Card className="bg-slate-800/70 border-slate-700/50 text-white">
+        <Flex justifyContent="between" alignItems="center" className="mb-4">
+          <Title className="text-white flex items-center">
+            <EnvelopeIcon className="h-5 w-5 text-blue-400 mr-2" />
+            Inbox
+          </Title>
+          <Flex justifyContent="end" alignItems="center" className="space-x-2">
+            <Button 
+              onClick={handleRefresh} 
+              icon={ArrowPathIcon} 
+              variant="secondary" 
+              color="blue" 
+              size="xs"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button 
+              icon={PlusIcon} 
+              variant="secondary" 
+              color="blue" 
+              size="xs"
             >
               Compose
-              </Button>
+            </Button>
+          </Flex>
+        </Flex>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <ArrowPathIcon className="h-6 w-6 text-blue-400 animate-spin" />
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card 
-              decoration="top" 
-              decorationColor="blue"
-              className="relative overflow-hidden"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-grow">
-                  <Text>Total Emails</Text>
-                  <Metric>{emailStats.total}</Metric>
-                        </div>
-                <InboxIcon className="w-12 h-12 text-blue-100" />
-                        </div>
-              {emailStats.total > 0 && (
-                <ProgressBar 
-                  value={emailStats.unread / emailStats.total * 100}
-                  className="mt-3"
-                />
-              )}
-                        <Text className="text-sm text-gray-500 mt-1">
-                {emailStats.unread} unread
-                        </Text>
-            </Card>
-
-            <Card 
-              decoration="top" 
-              decorationColor="amber"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-grow">
-                  <Text>Starred</Text>
-                  <Metric>{emailStats.starred}</Metric>
-                </div>
-                <StarIcon className="w-12 h-12 text-amber-100" />
-                      </div>
-            </Card>
-
-            <Card 
-              decoration="top" 
-              decorationColor="green"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-grow">
-                  <Text>Sent</Text>
-                  <Metric>{emailStats.sent}</Metric>
-                              </div>
-                <PaperAirplaneIcon className="w-12 h-12 text-green-100" />
-                                  </div>
-            </Card>
-                            </div>
-
-          {/* Main Content */}
-          <Card>
-            <TabGroup>
-              <TabList className="mb-4">
-                <Tab className="relative">
-                  Inbox
-                  {emailStats.unread > 0 && (
-                    <Badge 
-                      color="red" 
-                      size="xs"
-                      className="absolute -top-1 -right-1"
+        ) : emails.length > 0 ? (
+          <List>
+            {emails.map(email => (
+              <ListItem key={email.id} className={email.read ? '' : 'bg-slate-700/30'}>
+                <Flex justifyContent="start" alignItems="center" className="w-full">
+                  <div className="flex-none flex items-center pr-3">
+                    <button 
+                      onClick={() => handleToggleStar(email.id)}
+                      className={`hover:text-yellow-400 transition-colors ${email.starred ? 'text-yellow-400' : 'text-slate-500'}`}
                     >
-                      {emailStats.unread}
-                    </Badge>
-                  )}
-                </Tab>
-                <Tab>Sent</Tab>
-                <Tab>Starred</Tab>
-                <Tab>Analytics</Tab>
-              </TabList>
-
-              <div className="mb-4">
-                <div className="flex gap-2">
-                      <TextInput
-                    icon={MagnifyingGlassIcon}
-                    placeholder="Search emails..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-grow"
-                  />
-                        <Select 
-                    placeholder="Category"
-                    className="w-40"
+                      <StarIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                  
+                  <div 
+                    className="flex-grow cursor-pointer"
+                    onClick={() => handleMarkAsRead(email.id)}
                   >
-                    {categories.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.name}
-                            </SelectItem>
-                          ))}
-                        </Select>
+                    <Flex justifyContent="between" alignItems="center" className="w-full">
+                      <div className="min-w-0">
+                        <Text className={`font-medium ${email.read ? 'text-blue-200/70' : 'text-blue-200'}`}>
+                          {email.subject}
+                        </Text>
+                        <Flex justifyContent="start" alignItems="center" className="mt-1">
+                          <Text className={`text-xs truncate ${email.read ? 'text-blue-200/50' : 'text-blue-200/70'}`}>
+                            <span className="font-medium">{email.sender}</span>
+                            <span className="mx-1">—</span>
+                            {email.preview}
+                          </Text>
+                        </Flex>
                       </div>
-                </div>
-              
-              <TabPanels>
-              <TabPanel>
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="text-center">
-                        <ArrowPathIcon className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-                        <Text>Loading your emails...</Text>
+                      <div className="flex-none ml-3">
+                        <Text className="text-xs text-blue-200/70">{email.date}</Text>
+                        {!email.read && (
+                          <div className="mt-1 w-2 h-2 bg-blue-500 rounded-full ml-auto"></div>
+                        )}
                       </div>
-                                </div>
-                  ) : messages.length === 0 ? (
-                    <div className="text-center py-12">
-                      <InboxIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                      <Text>No emails found</Text>
-                                  </div>
-                  ) : (
-                    <MessageList messages={messages} />
-                )}
-              </TabPanel>
-                {/* Other tab panels remain the same */}
-            </TabPanels>
-          </TabGroup>
-          </Card>
-        </>
-      )}
-
-      {isComposing && <ComposeEmailModal />}
+                    </Flex>
+                  </div>
+                </Flex>
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <div className="text-center py-8">
+            <Text className="text-blue-200/70">No emails found</Text>
+          </div>
+        )}
+      </Card>
+      
+      <Card className="bg-slate-800/70 border-slate-700/50 text-white p-4">
+        <Flex justifyContent="between" alignItems="center">
+          <Text className="text-blue-200">Storage</Text>
+          <Text className="text-blue-200/70 text-xs">2.4 GB of 15 GB used</Text>
+        </Flex>
+        
+        <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
+          <div className="bg-blue-500 h-2 rounded-full" style={{ width: '16%' }}></div>
+        </div>
+      </Card>
+      
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="bg-slate-800/70 border-slate-700/50 text-white p-4">
+          <Flex justifyContent="center" flexDirection="col" alignItems="center">
+            <InboxIcon className="h-6 w-6 text-blue-400 mb-2" />
+            <Text className="text-blue-200 text-sm">Inbox</Text>
+            <Badge color="blue" size="xs" className="mt-1">24</Badge>
+          </Flex>
+        </Card>
+        
+        <Card className="bg-slate-800/70 border-slate-700/50 text-white p-4">
+          <Flex justifyContent="center" flexDirection="col" alignItems="center">
+            <StarIcon className="h-6 w-6 text-yellow-400 mb-2" />
+            <Text className="text-blue-200 text-sm">Starred</Text>
+            <Badge color="yellow" size="xs" className="mt-1">5</Badge>
+          </Flex>
+        </Card>
+        
+        <Card className="bg-slate-800/70 border-slate-700/50 text-white p-4">
+          <Flex justifyContent="center" flexDirection="col" alignItems="center">
+            <PaperAirplaneIcon className="h-6 w-6 text-green-400 mb-2" />
+            <Text className="text-blue-200 text-sm">Sent</Text>
+            <Badge color="green" size="xs" className="mt-1">12</Badge>
+          </Flex>
+        </Card>
+      </div>
     </div>
   );
-} 
+};
+
+export default GmailIntegration; 

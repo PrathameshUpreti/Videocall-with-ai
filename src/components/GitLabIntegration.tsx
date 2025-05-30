@@ -1,287 +1,271 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Card, Title, Text, List, ListItem, Button, TextInput, Textarea, Select, SelectItem, Badge } from '@tremor/react';
-import { 
-  CodeBracketIcon, 
-  PlusIcon, 
-  ArrowPathIcon,
-  ExclamationCircleIcon,
-  CheckCircleIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { Button, Text, Card, Metric, Title, Flex, List, ListItem, Badge } from '@tremor/react';
+import { CodeBracketIcon, DocumentTextIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
-interface GitLabProject {
+interface Repository {
   id: number;
   name: string;
   description: string;
-  web_url: string;
-  star_count: number;
-  forks_count: number;
-  last_activity_at: string;
+  stars: number;
+  forks: number;
+  lastActivity: string;
 }
 
-interface GitLabIssue {
-  id: number;
-  title: string;
-  description: string;
-  state: string;
-  web_url: string;
-  created_at: string;
-  updated_at: string;
-  labels: string[];
+interface GitLabUser {
+  username: string;
+  email: string;
+  avatarUrl: string;
 }
 
-export const GitLabIntegration = () => {
-  const [projects, setProjects] = useState<GitLabProject[]>([]);
-  const [issues, setIssues] = useState<GitLabIssue[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [newIssue, setNewIssue] = useState({
-    title: '',
-    description: ''
-  });
-
-  const checkAuth = async () => {
-    try {
-      const response = await axios.get('/mcp/gitlab/status');
-      setIsAuthenticated(response.data.authenticated);
-      if (response.data.authenticated) {
-        fetchProjects();
+const GitLabIntegration = () => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [user, setUser] = useState<GitLabUser | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Simulate loading GitLab data
+  useEffect(() => {
+    const loadGitLabData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Simulate API call with a delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Mock data for demonstration
+        setIsConnected(true);
+        setUser({
+          username: 'dev_user',
+          email: 'dev@example.com',
+          avatarUrl: 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'
+        });
+        
+        setRepositories([
+          {
+            id: 1,
+            name: 'video-call-app',
+            description: 'Real-time video conferencing application with WebRTC',
+            stars: 32,
+            forks: 8,
+            lastActivity: '2 days ago'
+          },
+          {
+            id: 2,
+            name: 'api-service',
+            description: 'Backend API service for video processing',
+            stars: 17,
+            forks: 4,
+            lastActivity: '5 days ago'
+          },
+          {
+            id: 3,
+            name: 'ui-components',
+            description: 'Reusable UI component library',
+            stars: 24,
+            forks: 6,
+            lastActivity: '1 week ago'
+          }
+        ]);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error loading GitLab data:', err);
+        setError('Failed to load GitLab data. Please try again.');
+        setIsConnected(false);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error checking GitLab auth:', error);
-      setIsAuthenticated(false);
-    }
-  };
-
-  const fetchProjects = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get('/mcp/gitlab/projects');
-      setProjects(response.data.projects);
-    } catch (error) {
-      console.error('Error fetching GitLab projects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchIssues = async (projectId: string) => {
-    if (!projectId) return;
-    setLoading(true);
-    try {
-      const response = await axios.get(`/mcp/gitlab/issues?project_id=${projectId}`);
-      setIssues(response.data.issues);
-    } catch (error) {
-      console.error('Error fetching GitLab issues:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleProjectChange = (projectId: string) => {
-    setSelectedProject(projectId);
-    fetchIssues(projectId);
-  };
-
-  const handleCreateIssue = async () => {
-    if (!selectedProject || !newIssue.title) return;
+    };
     
-    setLoading(true);
+    loadGitLabData();
+  }, []);
+  
+  const handleConnect = async () => {
+    setIsLoading(true);
+    
     try {
-      await axios.post('/mcp/gitlab/create-issue', {
-        project_id: selectedProject,
-        title: newIssue.title,
-        description: newIssue.description
+      // Simulate connection process
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setIsConnected(true);
+      setUser({
+        username: 'dev_user',
+        email: 'dev@example.com',
+        avatarUrl: 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'
       });
       
-      // Reset form and refresh issues
-      setNewIssue({ title: '', description: '' });
-      fetchIssues(selectedProject);
-    } catch (error) {
-      console.error('Error creating issue:', error);
+      // Mock repositories
+      setRepositories([
+        {
+          id: 1,
+          name: 'video-call-app',
+          description: 'Real-time video conferencing application with WebRTC',
+          stars: 32,
+          forks: 8,
+          lastActivity: '2 days ago'
+        },
+        {
+          id: 2,
+          name: 'api-service',
+          description: 'Backend API service for video processing',
+          stars: 17,
+          forks: 4,
+          lastActivity: '5 days ago'
+        },
+        {
+          id: 3,
+          name: 'ui-components',
+          description: 'Reusable UI component library',
+          stars: 24,
+          forks: 6,
+          lastActivity: '1 week ago'
+        }
+      ]);
+    } catch (err) {
+      console.error('Error connecting to GitLab:', err);
+      setError('Failed to connect to GitLab. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Simulate refresh
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update repositories with a new entry
+      setRepositories(prev => [
+        {
+          id: prev.length + 1,
+          name: 'notification-service',
+          description: 'Push notification service for mobile apps',
+          stars: 12,
+          forks: 3,
+          lastActivity: 'Just now'
+        },
+        ...prev
+      ]);
+    } catch (err) {
+      console.error('Error refreshing GitLab data:', err);
+      setError('Failed to refresh GitLab data. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getStateIcon = (state: string) => {
-    switch (state) {
-      case 'opened':
-        return <ExclamationCircleIcon className="h-5 w-5 text-blue-500" />;
-      case 'closed':
-        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      default:
-        return <ClockIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  if (!isAuthenticated) {
+  if (isLoading && !isConnected) {
     return (
-      <Card className="bg-slate-800/70 border-slate-700/50 text-white">
-        <div className="flex items-center space-x-3 mb-4">
-          <CodeBracketIcon className="h-8 w-8 text-blue-400" />
-          <Title className="text-xl text-white">GitLab Integration</Title>
-        </div>
-        <Text className="text-blue-200/70">Please configure your GitLab personal access token in the environment variables.</Text>
-        <div className="mt-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-          <Text className="text-sm text-gray-400">Required environment variable:</Text>
-          <code className="block mt-2 p-2 bg-slate-800 rounded text-blue-300 font-mono text-sm">
-            GITLAB_TOKEN=your_personal_access_token
-          </code>
-        </div>
-      </Card>
+      <div className="flex flex-col items-center justify-center p-6 text-blue-200">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mb-4"></div>
+        <Text>Connecting to GitLab...</Text>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <CodeBracketIcon className="h-16 w-16 text-blue-400 mb-4" />
+        <Title className="text-xl text-white mb-2">Connect to GitLab</Title>
+        <Text className="text-blue-200 mb-6 text-center">
+          Link your GitLab account to manage repositories and issues directly from your calls
+        </Text>
+        
+        {error && (
+          <div className="bg-red-900/50 border border-red-700 p-3 rounded-lg text-red-200 mb-4 w-full">
+            {error}
+          </div>
+        )}
+        
+        <Button 
+          onClick={handleConnect} 
+          icon={CodeBracketIcon}
+          color="blue"
+          size="lg"
+        >
+          Connect GitLab Account
+        </Button>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800/70 border-slate-700/50 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <CodeBracketIcon className="h-8 w-8 text-blue-400" />
-            <Title className="text-xl text-white">GitLab Projects</Title>
-          </div>
-          <Button
-            icon={ArrowPathIcon}
-            variant="secondary"
-            size="xs"
-            onClick={fetchProjects}
-            loading={loading}
-          >
-            Refresh
-          </Button>
-        </div>
-        
-        <Select
-          value={selectedProject}
-          onValueChange={handleProjectChange}
-          className="mt-4"
-        >
-          <SelectItem value="">Select a project</SelectItem>
-          {projects.map((project) => (
-            <SelectItem 
-              key={project.id} 
-              value={project.id.toString()}
-              className="hover:bg-slate-700/50"
-            >
-              <div className="flex flex-col">
-                <span className="font-medium">{project.name}</span>
-                <span className="text-sm text-gray-400">
-                  Last activity: {formatDate(project.last_activity_at)}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
-        </Select>
-      </Card>
-
-      {selectedProject && (
-        <>
-          <Card className="bg-slate-800/70 border-slate-700/50 text-white">
-            <div className="flex items-center space-x-3 mb-4">
-              <PlusIcon className="h-6 w-6 text-blue-400" />
-              <Title className="text-lg text-white">Create New Issue</Title>
-            </div>
-            <div className="space-y-4">
-              <TextInput
-                placeholder="Issue Title"
-                value={newIssue.title}
-                onChange={(e) => setNewIssue({ ...newIssue, title: e.target.value })}
-                className="bg-slate-900/50 border-slate-700/50 text-white"
+      {/* User info */}
+      {user && (
+        <Card className="bg-slate-800/70 border-slate-700/50 text-white">
+          <Flex justifyContent="between" alignItems="center">
+            <Flex justifyContent="start" alignItems="center" className="space-x-4">
+              <img 
+                src={user.avatarUrl} 
+                alt={user.username} 
+                className="h-12 w-12 rounded-full border border-slate-600"
               />
-              <Textarea
-                placeholder="Issue Description"
-                value={newIssue.description}
-                onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })}
-                className="bg-slate-900/50 border-slate-700/50 text-white"
-              />
-              <Button
-                onClick={handleCreateIssue}
-                loading={loading}
-                disabled={!newIssue.title}
-                className="w-full bg-blue-500 hover:bg-blue-600"
-              >
-                Create Issue
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="bg-slate-800/70 border-slate-700/50 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <ExclamationCircleIcon className="h-6 w-6 text-blue-400" />
-                <Title className="text-lg text-white">Project Issues</Title>
+              <div>
+                <Text className="text-blue-200 font-medium">{user.username}</Text>
+                <Text className="text-xs text-blue-200/70">{user.email}</Text>
               </div>
-              <Button
-                icon={ArrowPathIcon}
-                variant="secondary"
-                size="xs"
-                onClick={() => fetchIssues(selectedProject)}
-                loading={loading}
-              >
-                Refresh
-              </Button>
-            </div>
-            
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-              </div>
-            ) : (
-              <List className="mt-4">
-                {issues.map((issue) => (
-                  <ListItem key={issue.id} className="hover:bg-slate-700/30 rounded-lg p-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        {getStateIcon(issue.state)}
-                        <Text className="font-medium text-white">{issue.title}</Text>
-                        <Badge color={issue.state === 'opened' ? 'blue' : 'green'} size="sm">
-                          {issue.state}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {issue.labels.map((label, index) => (
-                          <Badge key={index} color="gray" size="sm">
-                            {label}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-400">
-                        <span>Created: {formatDate(issue.created_at)}</span>
-                        <span>Updated: {formatDate(issue.updated_at)}</span>
-                      </div>
-                    </div>
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      onClick={() => window.open(issue.web_url, '_blank')}
-                      className="ml-4"
-                    >
-                      View
-                    </Button>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Card>
-        </>
+            </Flex>
+            <Badge color="green" size="sm">Connected</Badge>
+          </Flex>
+        </Card>
       )}
+      
+      {/* Repositories */}
+      <Card className="bg-slate-800/70 border-slate-700/50 text-white">
+        <Flex justifyContent="between" alignItems="center" className="mb-4">
+          <Title className="text-white">Repositories</Title>
+          <Button 
+            onClick={handleRefresh} 
+            icon={ArrowPathIcon} 
+            variant="secondary" 
+            color="blue" 
+            size="xs"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </Flex>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <ArrowPathIcon className="h-6 w-6 text-blue-400 animate-spin" />
+          </div>
+        ) : repositories.length > 0 ? (
+          <List>
+            {repositories.map(repo => (
+              <ListItem key={repo.id}>
+                <Flex justifyContent="start" alignItems="center" className="space-x-3">
+                  <DocumentTextIcon className="h-5 w-5 text-blue-400" />
+                  <div className="flex-1 min-w-0">
+                    <Text className="text-blue-200 font-medium">{repo.name}</Text>
+                    <Text className="text-xs text-blue-200/70 truncate">{repo.description}</Text>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Text className="text-xs text-blue-200/70">{repo.lastActivity}</Text>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-yellow-400 text-xs">★</span>
+                      <Text className="text-xs text-blue-200/70">{repo.stars}</Text>
+                    </div>
+                  </div>
+                </Flex>
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <div className="text-center py-8">
+            <Text className="text-blue-200/70">No repositories found</Text>
+          </div>
+        )}
+      </Card>
     </div>
   );
-}; 
+};
+
+export default GitLabIntegration; 

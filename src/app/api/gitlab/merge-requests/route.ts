@@ -1,17 +1,28 @@
 import { NextResponse } from 'next/server';
 import { Gitlab } from '@gitbeaker/node';
 
-if (!process.env.GITLAB_TOKEN || !process.env.GITLAB_URL) {
-  throw new Error('Missing required GitLab environment variables');
-}
+// Check for required environment variables
+const hasGitLabCredentials = !!(process.env.GITLAB_TOKEN && process.env.GITLAB_URL);
 
-const api = new Gitlab({
-  token: process.env.GITLAB_TOKEN,
-  host: process.env.GITLAB_URL,
-});
+// Only initialize GitLab client if credentials are available
+const api = hasGitLabCredentials
+  ? new Gitlab({
+      token: process.env.GITLAB_TOKEN || '',
+      host: process.env.GITLAB_URL || '',
+    })
+  : null;
 
 export async function GET() {
   try {
+    // If GitLab client is not initialized due to missing env vars, return error
+    if (!api) {
+      console.warn('GitLab integration is not configured. Missing environment variables.');
+      return NextResponse.json(
+        { error: 'GitLab integration is not configured' },
+        { status: 503 }
+      );
+    }
+
     const mergeRequests = await api.MergeRequests.all({
       scope: 'all',
       state: 'opened',

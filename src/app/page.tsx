@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { VideoCallOptions } from '@/components/VideoCallOptions';
 import { VideoCall } from '@/components/VideoCall';
+import MCPIntegration from '@/components/MCPIntegration';
 import { io } from 'socket.io-client';
 import { Socket } from 'socket.io-client';
 
