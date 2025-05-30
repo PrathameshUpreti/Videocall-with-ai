@@ -29,6 +29,13 @@ import {
   ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+
+interface MCPStats {
+  activeRooms: number;
+  totalUsers: number;
+  uptime: string;
+}
 
 export default function MCPIntegration() {
   const [activeTab, setActiveTab] = useState<number>(0);
@@ -40,6 +47,8 @@ export default function MCPIntegration() {
     gmail: 'checking',
     gitlab: 'checking'
   });
+  const [stats, setStats] = useState<MCPStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Check connection status
   useEffect(() => {
@@ -69,6 +78,35 @@ export default function MCPIntegration() {
     };
     
     checkStatus();
+  }, []);
+
+  useEffect(() => {
+    const fetchMCPStats = async () => {
+      try {
+        setLoading(true);
+        // In production, this would be a proper API endpoint
+        const response = await axios.get('/mcp/stats');
+        setStats(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch MCP stats:', err);
+        setError('Failed to connect to MCP server. Using fallback data.');
+        // Use fallback data
+        setStats({
+          activeRooms: 3,
+          totalUsers: 12,
+          uptime: '2d 14h'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMCPStats();
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchMCPStats, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (

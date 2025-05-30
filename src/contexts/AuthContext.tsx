@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
@@ -8,17 +8,16 @@ import axios from 'axios';
 export interface User {
   id: string;
   username: string;
-  email: string;
+  email?: string;
+  image?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  error: string | null;
-  register: (username: string, email: string, password: string) => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 interface AuthProviderProps {
@@ -26,113 +25,74 @@ interface AuthProviderProps {
 }
 
 // Create auth context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  login: async () => {},
+  logout: () => {},
+});
 
 // Auth provider component
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Check if user is logged in on initial load
+  // Check for stored user info on component mount
   useEffect(() => {
-    const checkUserLoggedIn = async () => {
+    const checkAuth = async () => {
       try {
-        const { data } = await axios.get('/api/auth/me');
-        if (data.success) {
-          setUser(data.user);
+        // In a real app, this might verify a token with your backend
+        const storedUser = localStorage.getItem('auth_user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        // User is not logged in, that's okay
+        console.error('Auth error:', error);
         setUser(null);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    checkUserLoggedIn();
+    checkAuth();
   }, []);
 
-  // Register user
-  const register = async (username: string, email: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string) => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const { data } = await axios.post('/api/auth/register', {
+      // This is a mock login - in a real app, you'd validate with your backend
+      const mockUser: User = {
+        id: '1',
         username,
-        email,
-        password
-      });
+        email: `${username}@example.com`,
+      };
       
-      if (data.success) {
-        setUser(data.user);
-        router.push('/');
-        return true;
-      }
-      return false;
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Something went wrong');
-      return false;
+      // Store user in localStorage for persistence
+      localStorage.setItem('auth_user', JSON.stringify(mockUser));
+      setUser(mockUser);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Login user
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const { data } = await axios.post('/api/auth/login', {
-        email,
-        password
-      });
-      
-      if (data.success) {
-        setUser(data.user);
-        router.push('/');
-        return true;
-      }
-      return false;
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Invalid credentials');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Logout user
-  const logout = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      
-      const { data } = await axios.post('/api/auth/logout');
-      
-      if (data.success) {
-        setUser(null);
-        router.push('/login');
-      }
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Something went wrong');
-    } finally {
-      setLoading(false);
-    }
+  const logout = () => {
+    localStorage.removeItem('auth_user');
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        loading,
-        error,
-        register,
+        isAuthenticated: !!user,
+        isLoading,
         login,
         logout,
-        isAuthenticated: !!user
       }}
     >
       {children}
@@ -141,10 +101,4 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 };
 
 // Custom hook to use auth context
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}; 
+export const useAuth = () => useContext(AuthContext); 
