@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, Tab, TabGroup, TabList, TabPanel, TabPanels } from '@tremor/react';
 import Image from 'next/image';
 import { useAuth, User } from '@/contexts/AuthContext';
-import { ResearchStatusResponse, ResearchStatus } from '@/types/research';
 
 interface VideoCallOptionsProps {
   onJoinRoom: (roomId: string, username: string, isCreator: boolean) => void;
@@ -29,7 +28,12 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [currentResearchId, setCurrentResearchId] = useState<string | null>(null);
-  const [researchStatus, setResearchStatus] = useState<ResearchStatusResponse | null>(null);
+  const [researchStatus, setResearchStatus] = useState<{
+    status: 'in_progress' | 'completed' | 'error';
+    progress?: number;
+    files?: Record<string, string>;
+    error?: string;
+  } | null>(null);
   
   // Demo/placeholder results
   const [searchResults, setSearchResults] = useState<{
@@ -57,21 +61,6 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
 
   // Add state for report content
   const [reportContent, setReportContent] = useState<string | null>(null);
-
-  // Automatically fetch the final report when research is completed
-  useEffect(() => {
-    if (
-      currentResearchId &&
-      researchStatus?.status === 'completed' &&
-      researchStatus.files &&
-      researchStatus.files['final_startup_evaluation.md']
-    ) {
-      fetch(`http://localhost:9001/api/startup-research/file/${currentResearchId}/final_startup_evaluation.md`)
-        .then(res => res.text())
-        .then(setReportContent)
-        .catch(() => setReportContent('Could not load final report.'));
-    }
-  }, [currentResearchId, researchStatus]);
 
   // Set username from auth context if logged in, otherwise use localStorage
   useEffect(() => {
@@ -105,7 +94,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
     let result = '';
     const charactersLength = characters.length;
     
-    // Generate a 6-character random ID
+    // Generate an 8-character random ID
     for (let i = 0; i < 6; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
@@ -330,14 +319,14 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
         {/* Left side brand and info */}
         <div className="flex-1 text-white">
           <div className="flex items-center mb-4">
-            <h1 className="text-4xl font-bold text-white">Marina</h1>
+            <h1 className="text-4xl font-bold text-white">Zoom</h1>
             <div className="ml-3 bg-blue-600 text-white px-2 py-1 rounded text-xs">
-              VC
+              Clone
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4">Make calls with AI</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">UI Mockup Templates</h2>
           <p className="text-gray-400 mb-6">
-            Full AI-powered video call app with Jira and Gmail integrations. 
+            Full AI-powered video call app with Jira and GitLab integrations. 
             Includes both desktop and mobile versions.
           </p>
           
@@ -567,7 +556,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
             <div className="mt-8 bg-[#222326] p-2 rounded-md">
               <div className="relative aspect-video rounded overflow-hidden">
                 <div className="absolute top-0 right-0 left-0 bg-[#222326] flex justify-between items-center p-1 text-xs text-gray-400">
-                  <span>MarinaCall</span>
+                  <span>Zoom Call</span>
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 rounded-full bg-red-500"></div>
                     <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
@@ -593,7 +582,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
       </div>
       
       <div className="mt-8 text-gray-500 text-sm">
-        © 2025 Marina. All rights reserved.
+        © 2023 Zoom Clone. All rights reserved.
       </div>
       
       {/* Startup Research Section */}
@@ -666,18 +655,30 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
                   ))}
                 </div>
                 
-                {/* Automatically Display Final Report Content */}
+                {/* Report Content Display */}
                 {reportContent && (
                   <div className="mt-4 p-4 bg-gray-900 rounded-lg">
-                    <h6 className="text-white text-lg mb-2">Final Report</h6>
-                    <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm">
-                      {reportContent}
-                    </pre>
+                    <div className="flex justify-between items-center mb-4">
+                      <h6 className="text-white text-lg">Report Content</h6>
+                      <button
+                        onClick={() => setReportContent(null)}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="prose prose-invert max-w-none">
+                      <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm">
+                        {reportContent}
+                      </pre>
+                    </div>
                   </div>
                 )}
                 
                 {/* Error Display */}
-                {researchStatus?.status === ('error' as ResearchStatus) && (
+                {researchStatus?.status === 'error' && (
                   <div className="mt-4 p-4 bg-red-900/50 border border-red-700 rounded-lg">
                     <p className="text-red-300">{researchStatus.error}</p>
                   </div>

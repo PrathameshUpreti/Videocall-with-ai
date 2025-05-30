@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { VideoCallOptions } from '@/components/VideoCallOptions';
 import { VideoCall } from '@/components/VideoCall';
-import MCPIntegration from '@/components/MCPIntegration';
 import { io } from 'socket.io-client';
 import { Socket } from 'socket.io-client';
 
@@ -19,10 +18,6 @@ export default function Home() {
   } | null>(null);
   const [serverHealthy, setServerHealthy] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [roomJoined, setRoomJoined] = useState(false);
-  const [roomId, setRoomId] = useState('');
-  const [username, setUsername] = useState('');
-  const [isCreator, setIsCreator] = useState(false);
 
   // Clear any stale room data on first page load
   useEffect(() => {
@@ -267,13 +262,14 @@ export default function Home() {
   }, []);
 
   const handleJoinRoom = useCallback((roomId: string, username: string, isCreator: boolean) => {
-    setRoomId(roomId);
-    setUsername(username);
-    setIsCreator(isCreator);
-    setRoomJoined(true);
-    
-    // In a real app, this would navigate to the room or initialize video call
-    console.log(`Joining room ${roomId} as ${username} (creator: ${isCreator})`);
+    // Normalize the room ID by trimming whitespace to ensure consistent handling
+    const normalizedRoomId = roomId.trim(); 
+    setRoomInfo({
+      id: normalizedRoomId,
+      username,
+      isCreator
+    });
+    setInCall(true);
   }, []);
 
   const handleLeaveRoom = useCallback(() => {
@@ -334,24 +330,18 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative">
-      {!roomJoined ? (
+      {(!inCall || new URLSearchParams(window.location.search).get('force_options') === 'true') ? (
         <VideoCallOptions onJoinRoom={handleJoinRoom} />
       ) : (
-        <div className="flex items-center justify-center h-screen text-white">
-          <div className="bg-[#18191b] p-6 rounded-lg shadow-xl max-w-md w-full">
-            <h1 className="text-2xl font-bold mb-4">Room Joined Successfully</h1>
-            <p className="mb-2"><span className="font-bold">Room ID:</span> {roomId}</p>
-            <p className="mb-2"><span className="font-bold">Username:</span> {username}</p>
-            <p className="mb-6"><span className="font-bold">Role:</span> {isCreator ? 'Host' : 'Participant'}</p>
-            
-            <button 
-              onClick={() => setRoomJoined(false)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors"
-            >
-              Leave Room
-            </button>
-          </div>
-        </div>
+        roomInfo && socket && (
+          <VideoCall
+            socket={socket}
+            roomId={roomInfo.id}
+            username={roomInfo.username}
+            onLeaveRoom={handleLeaveRoom}
+            isCreator={roomInfo.isCreator}
+          />
+        )
       )}
     </main>
   );

@@ -5,10 +5,10 @@ const nextConfig = {
   // Disable server-side rendering for specific paths that rely heavily on browser APIs
   experimental: {
     // Apply middleware only to specific paths
-    optimizeCss: false,
+    optimizeCss: true,
     // Other experimental features
     serverActions: {
-      allowedOrigins: ['localhost:3000', '*.vercel.app'],
+      allowedOrigins: ['localhost:3000'],
     },
   },
   // Proxy API requests to the MCP server
@@ -16,17 +16,17 @@ const nextConfig = {
     return [
       {
         source: '/mcp/:path*',
-        destination: process.env.MCP_API_URL ? `${process.env.MCP_API_URL}/mcp/:path*` : 'http://localhost:5001/mcp/:path*',
+        destination: 'http://localhost:5001/mcp/:path*',
       },
       // Socket.io server proxy
       {
         source: '/socket.io/:path*',
-        destination: process.env.SOCKET_API_URL ? `${process.env.SOCKET_API_URL}/socket.io/:path*` : 'http://localhost:9000/socket.io/:path*'
+        destination: 'http://localhost:9000/socket.io/:path*'
       },
       // Flask research API proxy
       {
         source: '/api/startup-research/:path*',
-        destination: process.env.RESEARCH_API_URL ? `${process.env.RESEARCH_API_URL}/api/startup-research/:path*` : 'http://localhost:9001/api/startup-research/:path*'
+        destination: 'http://localhost:9001/api/startup-research/:path*'
       }
     ];
   },

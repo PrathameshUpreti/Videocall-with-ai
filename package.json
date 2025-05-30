@@ -9,11 +9,10 @@
     "lint": "next lint",
     "server": "node server.js",
     "start:all": "node start_servers.js",
-    "setup:auth": "node setup-auth.js",
-    "troubleshoot": "node troubleshoot-deploy.js"
+    "setup:auth": "node setup-auth.js"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.20.2",
+    "@clerk/nextjs": "^6.18.2",
     "@gitbeaker/node": "^35.8.1",
     "@headlessui/react": "^2.2.2",
     "@heroicons/react": "^2.2.0",
@@ -22,12 +21,12 @@
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "critters": "^0.0.25",
     "express": "^5.1.0",
-    "framer-motion": "^12.15.0",
+    "framer-motion": "^12.9.7",
     "jira-client": "^8.2.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.3",
-    "next": "15.2.3",
     "openai": "^4.96.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -43,13 +42,17 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/simple-peer": "^9.11.8",
-    "autoprefixer": "^10.4.14",
+    "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
-    "critters": "^0.0.25",
     "eslint": "^8.56.0",
-    "eslint-config-next": "15.2.3",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.0",
+    "eslint-config-next": "14.1.0",
+    "next": "^13.5.7",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^4.1.8",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.8",
+    "utf-8-validate": "^6.0.3"
   }
 }

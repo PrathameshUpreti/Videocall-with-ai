@@ -29,18 +29,11 @@ export async function POST(request: Request) {
       temperature: 0.7,
     });
 
-    const content = response.choices[0].message.content;
-    
-    if (!content) {
-      return NextResponse.json(
-        { error: 'Failed to generate summary: Empty response' },
-        { status: 500 }
-      );
-    }
+    const result = response.choices[0].message.content;
     
     // Parse the AI response to extract sections
-    const sections = content.split('\n\n');
-    const summary = sections[0] || 'No summary available';
+    const sections = result.split('\n\n');
+    const summary = sections[0];
     const keyPoints = sections[1]?.split('\n').filter(point => point.trim().startsWith('-')) || [];
     const actionItems = sections[2]?.split('\n').filter(item => item.trim().startsWith('-')) || [];
 

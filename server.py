@@ -12,6 +12,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import whisper
+import tempfile
+import openai
+from werkzeug.utils import secure_filename
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +30,12 @@ PORT = 9000
 # Get API keys from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 SEARXNG_INSTANCE = os.getenv("SEARXNG_INSTANCE", "https://searx.be")  # Default to a public instance
+
+# Initialize OpenAI client
+openai.api_key = OPENAI_API_KEY
+
+# Initialize Whisper model
+whisper_model = None
 
 # Configure logging
 def setup_logging():
@@ -59,6 +69,128 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
+
+def get_whisper_model():
+    global whisper_model
+    if whisper_model is None:
+        whisper_model = whisper.load_model("base")
+    return whisper_model
+
+def transcribe_audio(audio_file_path):
+    """Transcribe audio file using Whisper."""
+    try:
+        model = get_whisper_model()
+        
+        # Configure transcription options for better accuracy
+        result = model.transcribe(
+            audio_file_path,
+            language="en",  # Specify English language
+            task="transcribe",
+            fp16=False,  # Use full precision for better accuracy
+            verbose=True,  # Show progress
+            temperature=0.0,  # No randomness in transcription
+            best_of=5,  # Take the best of 5 samples
+            beam_size=5,  # Use beam search for better results
+            condition_on_previous_text=True,  # Consider previous text for context
+            initial_prompt="This is a meeting transcription. Please transcribe accurately with proper punctuation and speaker identification if possible."
+        )
+        
+        # Process the transcription to improve readability
+        transcript = result["text"]
+        
+        # Add basic speaker diarization if timestamps are available
+        if "segments" in result:
+            formatted_segments = []
+            for segment in result["segments"]:
+                start_time = format_timestamp(segment["start"])
+                text = segment["text"].strip()
+                formatted_segments.append(f"[{start_time}] {text}")
+            transcript = "\n".join(formatted_segments)
+        
+        return transcript
+    except Exception as e:
+        logger.error(f"Error in transcription: {str(e)}")
+        raise
+
+def format_timestamp(seconds):
+    """Format seconds into MM:SS format."""
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes:02d}:{seconds:02d}"
+
+def generate_summary(transcript):
+    """Generate a structured summary using GPT-3.5-turbo."""
+    try:
+        prompt = f"""Please analyze the following meeting transcript and provide a structured summary:
+
+{transcript}
+
+Please provide a summary that includes:
+1. Overview of the conversation
+2. Key points discussed
+3. Decisions made
+4. Action items (if any)
+
+Format the response in plain text with clear sections. Use markdown-style formatting for better readability.
+For action items, use bullet points and assign owners if mentioned in the transcript."""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a professional meeting summarizer. Provide clear, concise, and well-structured summaries. Focus on extracting actionable insights and key decisions."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.error(f"Error in summary generation: {str(e)}")
+        raise
+
+@app.route('/api/summarize-meeting', methods=['POST'])
+@limiter.limit("10 per hour")
+def summarize_meeting():
+    """Endpoint to handle meeting audio summarization."""
+    try:
+        if 'audio' not in request.files:
+            return jsonify({"error": "No audio file provided"}), 400
+        
+        audio_file = request.files['audio']
+        if audio_file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+        
+        # Create a temporary file to store the uploaded audio
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as temp_audio:
+            audio_file.save(temp_audio.name)
+            temp_audio_path = temp_audio.name
+        
+        try:
+            # Transcribe the audio
+            logger.info("Starting audio transcription...")
+            transcript = transcribe_audio(temp_audio_path)
+            logger.info("Transcription completed successfully")
+            
+            # Generate summary
+            logger.info("Generating meeting summary...")
+            summary = generate_summary(transcript)
+            logger.info("Summary generation completed successfully")
+            
+            return jsonify({
+                "transcript": transcript,
+                "summary": summary
+            })
+            
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
+                logger.info("Temporary audio file cleaned up")
+    
+    except Exception as e:
+        logger.error(f"Error in summarize-meeting endpoint: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/research', methods=['POST'])
 @limiter.limit("10 per minute")

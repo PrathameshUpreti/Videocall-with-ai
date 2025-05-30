@@ -21,8 +21,7 @@ export default function Login() {
     password: ''
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const { login, isLoading, isAuthenticated } = useAuth();
+  const { login, error, loading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   // Redirect if already logged in
@@ -55,15 +54,9 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoginError(null);
     
     if (validateForm()) {
-      try {
-        await login(formData.email, formData.password);
-      } catch (error) {
-        setLoginError('Invalid email or password. Please try again.');
-        console.error('Login error:', error);
-      }
+      await login(formData.email, formData.password);
     }
   };
 
@@ -74,9 +67,9 @@ export default function Login() {
           <h1 className="text-3xl font-bold text-center text-gray-800">Sign In</h1>
         </div>
         
-        {loginError && (
+        {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-            {loginError}
+            {error}
           </div>
         )}
         
@@ -122,10 +115,10 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </div>
         </form>

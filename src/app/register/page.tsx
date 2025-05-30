@@ -27,9 +27,7 @@ export default function Register() {
     confirmPassword: ''
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const { isAuthenticated, login } = useAuth();
+  const { register, error, loading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   // Redirect if already logged in
@@ -78,22 +76,7 @@ export default function Register() {
     e.preventDefault();
     
     if (validateForm()) {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        // In a real app, this would be a registration API call
-        // For now, we'll just simulate registration and login
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Simulate successful registration by logging in
-        await login(formData.username, formData.password);
-        router.push('/');
-      } catch (err) {
-        setError('Registration failed. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+      await register(formData.username, formData.email, formData.password);
     }
   };
 
