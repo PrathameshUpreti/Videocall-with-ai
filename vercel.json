@@ -1,37 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next",
-      "config": {
-        "installCommand": "npm install --legacy-peer-deps"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/mcp/(.*)",
-      "dest": "https://your-backend-url.com/mcp/$1"
-    },
-    {
-      "src": "/socket.io/(.*)",
-      "dest": "https://your-backend-url.com/socket.io/$1"
-    },
-    {
-      "src": "/api/startup-research/(.*)",
-      "dest": "https://your-backend-url.com/api/startup-research/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
   "env": {
-    "MCP_API_URL": "https://your-backend-url.com",
-    "SOCKET_API_URL": "https://your-backend-url.com",
-    "RESEARCH_API_URL": "https://your-backend-url.com",
     "NEXT_TELEMETRY_DISABLED": "1"
   }
 } 

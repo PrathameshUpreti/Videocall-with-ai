@@ -9,7 +9,8 @@
     "lint": "next lint",
     "server": "node server.js",
     "start:all": "node start_servers.js",
-    "setup:auth": "node setup-auth.js"
+    "setup:auth": "node setup-auth.js",
+    "troubleshoot": "node troubleshoot-deploy.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.20.2",

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, Tab, TabGroup, TabList, TabPanel, TabPanels } from '@tremor/react';
 import Image from 'next/image';
 import { useAuth, User } from '@/contexts/AuthContext';
+import { ResearchStatusResponse } from '@/types/research';
 
 interface VideoCallOptionsProps {
   onJoinRoom: (roomId: string, username: string, isCreator: boolean) => void;
@@ -28,12 +29,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [currentResearchId, setCurrentResearchId] = useState<string | null>(null);
-  const [researchStatus, setResearchStatus] = useState<{
-    status: 'in_progress' | 'completed' | 'error';
-    progress?: number;
-    files?: Record<string, string>;
-    error?: string;
-  } | null>(null);
+  const [researchStatus, setResearchStatus] = useState<ResearchStatusResponse | null>(null);
   
   // Demo/placeholder results
   const [searchResults, setSearchResults] = useState<{
@@ -681,7 +677,7 @@ export const VideoCallOptions = ({ onJoinRoom }: VideoCallOptionsProps) => {
                 )}
                 
                 {/* Error Display */}
-                {researchStatus?.status === 'error' && (
+                {researchStatus && researchStatus.status === 'error' && (
                   <div className="mt-4 p-4 bg-red-900/50 border border-red-700 rounded-lg">
                     <p className="text-red-300">{researchStatus.error}</p>
                   </div>
