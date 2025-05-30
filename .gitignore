@@ -70,3 +70,13 @@ venv.bak/
 recordings/
 credentials/
 gmail_token.pickle
+research_outputs/
+*.pickle
+*.pkl
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+*.md
